@@ -1,0 +1,53 @@
+/etc/init.d/networking restart
+/etc/init.d/quagga restart
+/etc/init.d/isc-dhcp-server restart
+
+iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE 
+
+iptables -P FORWARD DROP
+iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -i eth0 -j ACCEPT
+iptables -A FORWARD -s 192.168.100.0/24 -j ACCEPT
+
+/etc/init.d/ssh restart
+
+mkdir -p /dev/net
+mknod /dev/net/tun c 10 200
+chmod 600 /dev/net/tun
+
+if [ -e /shared/vpn/ca.crt ]
+then
+    cp /shared/vpn/ca.crt /root
+    cp /shared/vpn/s.key /root
+    cp /shared/vpn/s.crt /root
+    cp /shared/vpn/dh.pem /root
+    cp /shared/vpn/server.* /root
+else
+    cd usr/share/doc/openvpn/example/easy-rsa/2.0
+    chmod +x *
+    source vars
+    sh clean-all
+    sh build-ca --batch
+    sh pkitool --server server
+    sh pkitool s
+    sh build-dh 
+
+    mv ./keys/server.* ~
+    mv ./keys/dh2048.pem ~/dh.pem
+    cp ./keys/ca.crt ~
+
+    cp ./keys/ca.crt /shared/vpn
+    cp ./keys/s.key /shared/vpn
+    cp ./keys/s.crt /shared/vpn
+    cp /root/dh.pem /shared/vpn
+    cp /root/server.crt /shared/vpn
+    cp /root/server.key /shared/vpn
+fi
+
+cd /root
+mkdir ccd
+cd ccd
+touch s
+echo "ifconfig-push 192.168.100.9 192.168.100.10" > ./s
+
+openvpn /root/server.conf
