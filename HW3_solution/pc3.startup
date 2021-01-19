@@ -1,0 +1,22 @@
+/etc/init.d/networking restart
+
+printf "\n%s\n" "SSH connection"
+if [ -f /shared/ssh_con/id_rsa ]
+then 
+    mkdir /root/.ssh
+    cp /shared/ssh_con/id_rsa /root/.ssh
+else
+    echo -e '\n\n\n' | ssh-keygen
+    pwd
+    mv /root/.ssh/id_rsa.pub /shared/ssh_con
+    mv /root/.ssh/id_rsa /shared/ssh_con
+fi
+
+echo -e "PubkeyAuthentication yes\n" >>/etc/ssh/sshd_config
+
+
+printf "\n%s\n" "Port forwarding"
+until ping -c1 1.0.1.13 &> /dev/null; do :;done
+ssh-keyscan -t rsa 1.0.1.13 > /root/.ssh/known_hosts
+ssh -o StrictHostKeyChecking=no -NR 9003:127.0.0.1:8083 exam_user@1.0.1.13 &
+/etc/init.d/ssh restart

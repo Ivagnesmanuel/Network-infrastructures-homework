@@ -1,0 +1,26 @@
+/etc/init.d/networking restart
+/etc/init.d/quagga restart
+/etc/init.d/ssh restart
+
+iptables -t nat -A POSTROUTING -o eth3 -j MASQUERADE
+
+mkdir /home/exam_user
+useradd exam_user -d /home/exam_user
+chown exam_user:exam_user /home/exam_user
+echo -e 'exam\nexam\n' | passwd exam_user
+
+mkdir /home/exam_user/.ssh
+chown exam_user:exam_user /home/exam_user/.ssh
+chmod 700 /home/exam_user/.ssh
+
+touch /home/exam_user/.ssh/authorized_keys
+chown exam_user:exam_user /home/exam_user/.ssh/authorized_keys
+chmod 600 /home/exam_user/.ssh/authorized_keys
+
+until [ -e /shared/id_rsa.pub ]
+do
+	sleep 1
+done
+	cat /shared/id_rsa.pub > /home/exam_user/.ssh/authorized_keys
+exit
+

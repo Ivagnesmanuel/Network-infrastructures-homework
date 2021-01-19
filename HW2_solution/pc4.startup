@@ -1,0 +1,19 @@
+/etc/init.d/networking restart
+/etc/init.d/ssh restart
+
+
+if [ -f /shared/pc4_key ]
+then 
+    mkdir /root/.ssh
+    cp /shared/pc4_key /root/.ssh
+    touch /root/.ssh/known_hosts
+else
+    echo -e '\n\n\n' | ssh-keygen
+    pwd
+    mv /root/.ssh/id_rsa.pub /shared/pc4_key.pub
+    mv /root/.ssh/id_rsa /shared/pc4_key
+    touch /root/.ssh/known_hosts
+fi
+
+
+( while ! ping -c 1 192.168.1.100 &> /dev/null; do printf "%c" "."; sleep 1; done; ssh -4 -o "StrictHostKeyChecking no" -NL 127.0.0.1:9000:192.168.1.100:8080 user@192.168.1.100 ) &
